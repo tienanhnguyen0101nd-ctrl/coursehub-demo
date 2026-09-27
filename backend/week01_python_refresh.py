@@ -77,3 +77,35 @@ def search_courses(keyword):
 
 
 print(search_courses("web"))
+
+
+def enroll_student(student_id, course_code):
+    # 1. Kiểm tra tính hợp lệ
+    is_valid, message = can_enroll(student_id, course_code)
+
+    # 2. Xử lý nếu không hợp lệ
+    if not is_valid:
+        return f"Dang ky that bai: {message}"
+
+    # 3. Xử lý nếu hợp lệ: Thêm vào danh sách và cập nhật sĩ số
+    enrollments.append({"student_id": student_id, "course_code": course_code})
+
+    course = find_course(course_code)
+    course["enrolled"] += 1
+
+    return f"Dang ky thanh cong hoc phan {course_code} cho sinh vien {student_id}!"
+
+
+# --- CHẠY THỬ CÁC TÌNH HUỐNG (TEST CASES) ---
+print("\n--- KET QUA TEST DANG KY ---")
+# 1. Đăng ký thành công (INT2204 đang có 2/3 slot)
+print(enroll_student("22000002", "INT2204"))
+
+# 2. Đăng ký thất bại (Lớp đã đầy vì sinh viên trên vừa chiếm slot cuối)
+print(enroll_student("22000003", "INT2204"))
+
+# 3. Đăng ký thất bại (Sinh viên 22000001 đã đăng ký từ trước)
+print(enroll_student("22000001", "INT2204"))
+
+# 4. Đăng ký thất bại (Mã học phần sai)
+print(enroll_student("22000002", "INT9999"))
