@@ -14,7 +14,7 @@ courses = [
         "code": "INT2205",
         "name": "Khai pha du lieu",
         "capacity": 2,
-        "enrolled": 2,
+        "enrolled": 2,  # Lớp này đã đầy sẵn
     },
 ]
 
@@ -22,7 +22,6 @@ enrollments = [
     {"student_id": "22000001", "course_code": "INT2204"}
 ]
 
-# Code duyệt dữ liệu
 for course in courses:
     remaining = course["capacity"] - course["enrolled"]
     print(course["code"], "- con", remaining, "cho")
@@ -34,13 +33,27 @@ def find_course(course_code):
             return course
     return None
 
+
 print(find_course("INT2204"))
 
 
+# Hàm mới viết thêm để check sinh viên theo yêu cầu đề
+def check_student_exists(student_id):
+    for student in students:
+        if student["id"] == student_id:
+            return True
+    return False
+
+
 def can_enroll(student_id, course_code):
+    # Kiem tra sinh vien ton tai chua
+    if not check_student_exists(student_id):
+        return False, "Sinh vien khong ton tai"
+
     course = find_course(course_code)
     if course is None:
         return False, "Hoc phan khong ton tai"
+
     if course["enrolled"] >= course["capacity"]:
         return False, "Lop da du so luong"
 
@@ -80,32 +93,32 @@ print(search_courses("web"))
 
 
 def enroll_student(student_id, course_code):
-    # 1. Kiểm tra tính hợp lệ
-    is_valid, message = can_enroll(student_id, course_code)
+    status, msg = can_enroll(student_id, course_code)
 
-    # 2. Xử lý nếu không hợp lệ
-    if not is_valid:
-        return f"Dang ky that bai: {message}"
+    if not status:
+        return f"Dang ky that bai: {msg}"
 
-    # 3. Xử lý nếu hợp lệ: Thêm vào danh sách và cập nhật sĩ số
+    # Ghi nhan dang ky va tang si so
     enrollments.append({"student_id": student_id, "course_code": course_code})
 
     course = find_course(course_code)
     course["enrolled"] += 1
 
-    return f"Dang ky thanh cong hoc phan {course_code} cho sinh vien {student_id}!"
+    return f"Dang ky thanh cong! Sinh vien {student_id} vao lop {course_code}"
 
 
-# --- CHẠY THỬ CÁC TÌNH HUỐNG (TEST CASES) ---
-print("\n--- KET QUA TEST DANG KY ---")
-# 1. Đăng ký thành công (INT2204 đang có 2/3 slot)
-print(enroll_student("22000002", "INT2204"))
+print("\n--- TEST 5 TINH HUONG ---")
+# 1. Thành công (INT2204 còn trống 1 chỗ)
+print("1.", enroll_student("22000002", "INT2204"))
 
-# 2. Đăng ký thất bại (Lớp đã đầy vì sinh viên trên vừa chiếm slot cuối)
-print(enroll_student("22000003", "INT2204"))
+# 2. Trùng lặp (22000001 đã đăng ký INT2204 từ đầu)
+print("2.", enroll_student("22000001", "INT2204"))
 
-# 3. Đăng ký thất bại (Sinh viên 22000001 đã đăng ký từ trước)
-print(enroll_student("22000001", "INT2204"))
+# 3. Lớp đầy (INT2205 có capacity=2, enrolled=2)
+print("3.", enroll_student("22000001", "INT2205"))
 
-# 4. Đăng ký thất bại (Mã học phần sai)
-print(enroll_student("22000002", "INT9999"))
+# 4. Mã học phần không tồn tại
+print("4.", enroll_student("22000001", "INT9999"))
+
+# 5. Mã sinh viên không tồn tại
+print("5.", enroll_student("99999999", "INT2204"))
