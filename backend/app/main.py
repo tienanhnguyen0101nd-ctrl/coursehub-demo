@@ -118,18 +118,56 @@ def list_lecturers() -> list[dict[str, object]]:
 
 @app.get("/sections")
 def list_sections(
+    q: str | None = Query(default=None, min_length=1),
+    course_code: str | None = Query(default=None, min_length=1),
     available_only: bool = False,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
 ) -> list[dict[str, object]]:
     sql = """
-    SELECT class_id, course_code, capacity, enrolled, remaining
-    FROM v_section_summary
+    SELECT v.class_id, v.course_code, v.capacity, v.enrolled, v.remaining
+    FROM v_section_summary AS v
+    JOIN courses AS c ON c.code = v.course_code
+    WHERE 1 = 1
     """
+    parameters: dict[str, object] = {
+        "skip": skip,
+        "limit": limit,
+    }
+
+    if q is not None:
+        keyword = q.strip().lower()
+        if not keyword:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tu khoa tim kiem khong duoc rong",
+            )
+        sql += """
+          AND (
+               LOWER(v.class_id) LIKE :keyword
+            OR LOWER(v.course_code) LIKE :keyword
+            OR LOWER(c.name) LIKE :keyword
+          )
+        """
+        parameters["keyword"] = f"%{keyword}%"
+
+    if course_code is not None:
+        code_clean = course_code.strip().upper()
+        if not code_clean:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="course_code khong duoc rong",
+            )
+        sql += " AND v.course_code = :course_code"
+        parameters["course_code"] = code_clean
+
     if available_only:
-        sql += " WHERE remaining > 0"
-    sql += " ORDER BY class_id"
+        sql += " AND v.remaining > 0"
+
+    sql += " ORDER BY v.class_id ASC OFFSET :skip LIMIT :limit"
 
     with engine.connect() as connection:
-        rows = connection.execute(text(sql)).mappings().all()
+        rows = connection.execute(text(sql), parameters).mappings().all()
 
     return [dict(row) for row in rows]
 
@@ -391,6 +429,7 @@ def delete_enrollment(student_id: str, class_section_id: str) -> Response:
 def list_enrollment_events(
     student_id: str | None = Query(default=None),
     event_type: str | None = Query(default=None),
+    dataset: str = Query(default="demo"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> list[dict[str, object]]:
@@ -399,6 +438,13 @@ def list_enrollment_events(
         raise HTTPException(
             status_code=400,
             detail="student_id khong duoc rong",
+        )
+
+    dataset = dataset.strip().lower()
+    if dataset not in ("demo", "performance"):
+        raise HTTPException(
+            status_code=400,
+            detail="dataset phai la demo hoac performance",
         )
 
     if event_type is not None:
@@ -419,10 +465,11 @@ def list_enrollment_events(
             dataset,
             occurred_at
         FROM enrollment_events
-        WHERE 1 = 1
+        WHERE dataset = :dataset
     """
 
     params: dict[str, object] = {
+        "dataset": dataset,
         "skip": skip,
         "limit": limit,
     }
