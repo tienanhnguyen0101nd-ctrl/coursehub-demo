@@ -391,6 +391,7 @@ def delete_enrollment(student_id: str, class_section_id: str) -> Response:
 def list_enrollment_events(
     student_id: str | None = Query(default=None),
     event_type: str | None = Query(default=None),
+    dataset: str = Query(default="demo"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> list[dict[str, object]]:
@@ -399,6 +400,13 @@ def list_enrollment_events(
         raise HTTPException(
             status_code=400,
             detail="student_id khong duoc rong",
+        )
+
+    dataset = dataset.strip().lower()
+    if dataset not in ("demo", "performance"):
+        raise HTTPException(
+            status_code=400,
+            detail="dataset phai la demo hoac performance",
         )
 
     if event_type is not None:
@@ -419,10 +427,11 @@ def list_enrollment_events(
             dataset,
             occurred_at
         FROM enrollment_events
-        WHERE 1 = 1
+        WHERE dataset = :dataset
     """
 
     params: dict[str, object] = {
+        "dataset": dataset,
         "skip": skip,
         "limit": limit,
     }
