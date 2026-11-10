@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import FastAPI, HTTPException, Query, Response, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -15,6 +16,15 @@ app = FastAPI(
     title="CourseHub API",
     version="0.4.0",
     description="API thuc hanh Buoi 4 - transaction, locking va hieu nang",
+)
+
+# Buoi 5: chi cho phep frontend local goi API qua trinh duyet.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -375,3 +385,65 @@ def delete_enrollment(student_id: str, class_section_id: str) -> Response:
             )
         connection.execute(text(event_sql), parameters)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.get("/enrollment-events")
+def list_enrollment_events(
+    student_id: str | None = Query(default=None),
+    event_type: str | None = Query(default=None),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=10, ge=1, le=100),
+) -> list[dict[str, object]]:
+
+    if student_id is not None and not student_id.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="student_id khong duoc rong",
+        )
+
+    if event_type is not None:
+        event_type = event_type.strip().upper()
+        if event_type not in ("CREATED", "CANCELLED"):
+            raise HTTPException(
+                status_code=400,
+                detail="event_type phai la CREATED hoac CANCELLED",
+            )
+
+    sql = """
+        SELECT
+            id,
+            student_id,
+            class_section_id,
+            event_type,
+            source,
+            dataset,
+            occurred_at
+        FROM enrollment_events
+        WHERE 1 = 1
+    """
+
+    params: dict[str, object] = {
+        "skip": skip,
+        "limit": limit,
+    }
+
+    if student_id is not None:
+        sql += " AND student_id = :student_id"
+        params["student_id"] = student_id.strip()
+
+    if event_type is not None:
+        sql += " AND event_type = :event_type"
+        params["event_type"] = event_type
+
+    sql += """
+        ORDER BY occurred_at DESC, id DESC
+        OFFSET :skip
+        LIMIT :limit
+    """
+
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text(sql), params
+        ).mappings().all()
+
+    return [dict(row) for row in rows]
