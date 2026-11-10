@@ -24,11 +24,11 @@ p { margin: 10px 0; }
 .student-form { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .student-form input { width: 170px; }
 label { font-weight: 600; }
-input:not([type="checkbox"]) {
+input:not([type="checkbox"]), select {
   border: 1px solid #9dacbd; border-radius: 7px; padding: 9px 11px;
-  font: inherit; min-width: 0;
+  font: inherit; min-width: 0; background: #fff;
 }
-input:focus, button:focus-visible { outline: 3px solid #83b6e8; outline-offset: 2px; }
+input:focus, select:focus, button:focus-visible { outline: 3px solid #83b6e8; outline-offset: 2px; }
 button {
   border: 1px solid #20588a; background: #20588a; color: #fff;
   border-radius: 7px; padding: 9px 12px; font: inherit;
@@ -61,6 +61,7 @@ small { color: #718094; font-size: 11px; }
 .enrollments { padding: 0; list-style: none; margin: 0; }
 .enrollments li { padding: 14px 0; border-bottom: 1px solid #e2e8f0; }
 .enrollments button { margin-top: 9px; }
+.pagination { display: flex; gap: 10px; margin-top: 14px; }
 footer { color: #63738a; font-size: 12px; padding: 3px 4px 18px; }
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
