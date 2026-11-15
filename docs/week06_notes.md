@@ -22,13 +22,23 @@
 
 ## Debug / AI
 - Lỗi gặp phải:
-  - `npm run build` báo không tìm thấy `./components/StudentForm.jsx`. Lỗi do code exercise15 em đang sửa dở, không phải do Docker. Em `git stash` phần đó lại rồi mới làm Buổi 6.
+  - `npm run build` báo không tìm thấy `./components/StudentForm.jsx`. Lỗi do code exercise15 em đang sửa dở, không phải do Docker. Em `git stash` phần đó lại rồi mới làm Buổi 6. Lúc push thì thấy `main` trên GitHub đã có exercise15 rồi nên em rebase nhánh lên `main` mới nhất và chạy lại test.
   - Thử để `DB_HOST=127.0.0.1` trong env của container thì `/health` trả 503.
   - `database.py` báo lỗi khi thiếu biến `DB_*` nên trên CI không import được app. Em đặt biến giả trong job backend (contract test không kết nối DB).
 - Bằng chứng đã xem: `docker compose ps`, `docker compose logs backend` (có dòng `GET /health 503` kèm lỗi kết nối SQLAlchemy), kiểm tra `host.docker.internal` trong container ra `192.168.65.254`. `127.0.0.1` trong container là chính container backend chứ không phải PostgreSQL trên máy, nên phải dùng `host.docker.internal`.
 - Nếu dùng AI: em dùng AI để soạn Dockerfile, compose và workflow theo tài liệu, và để đọc log mấy lỗi trên. Em tự chạy lại pytest, npm test/build, compose up, gọi API bằng curl và truy vấn SQL để kiểm tra. Em cũng mở thử bên trong image để chắc là không có file `.env` nào bị copy vào.
 
 ## Pull Request / CI
-- PR: (chưa mở, sẽ điền link sau khi push nhánh `week06-docker-ci`)
-- Reviewer: (chưa có)
-- CI run: (chưa chạy). CI chỉ chạy `compose config` và `compose build`, không chạy `up` vì database nằm trên máy em, GitHub runner không có.
+- PR: https://github.com/tienanhnguyen0101nd-ctrl/coursehub-demo/pull/13 (`week06-docker-ci` → `main`)
+- Reviewer: (chưa có, nhờ bạn trong nhóm review)
+- CI run:
+  - Lần đầu: pass cả 3 job backend, frontend, docker.
+  - Bài 1: đổi `/sections` thành `/sectionz` trong test → job backend **fail** ở step "Test backend contract" (`KeyError: '/sectionz'`), job docker bị skip vì có `needs`. Khôi phục lại thì backend pass.
+  - Bài 4: bỏ dòng `backend/.env.docker` khỏi `.dockerignore` → job docker **fail** ở step "Check backend image has no env/secret file", log in ra `SECRET FILE IN IMAGE: /app/backend/.env.docker`. Khôi phục lại thì pass.
+  - CI chỉ chạy `compose config` và `compose build`, không chạy `up` vì database nằm trên máy em, GitHub runner không có.
+
+## Bài tập tự thực hành
+- Bài 1: thêm `test_sections_get_method_is_registered` kiểm tra `GET /sections`. Đã thử làm CI đỏ rồi khôi phục (xem ở trên).
+- Bài 2: lỗi `DB_HOST=127.0.0.1`. Log có `GET /health 503`, nghĩa là request đã tới FastAPI nhưng không kết nối được DB. Sửa lại `host.docker.internal` thì `/health` 200. Không đụng tới database.
+- Bài 3: làm trên repo Project nhóm (chưa làm).
+- Bài 4: thêm step kiểm tra image backend không chứa `.env` / `.env.docker`. Step này bắt được lỗi sửa nhầm `.dockerignore` làm file mật khẩu DB bị copy vào image. Lỗi này pytest hay npm test đều không phát hiện được.
