@@ -27,4 +27,4 @@ def test_enrollment_methods_are_registered():
 # Bai tap tu thuc hanh 1: GET /sections phai co method get.
 def test_sections_get_method_is_registered():
     paths = app.openapi()["paths"]
-    assert "get" in paths["/sections"]
+    assert "get" in paths["/sectionz"]
